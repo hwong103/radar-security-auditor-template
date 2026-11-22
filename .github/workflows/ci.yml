@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - name: Fixture dry run
+        run: |
+          node dist/cli.js scan-fixture \
+            --config tests/fixtures/basic/config.json \
+            --fixtures tests/fixtures/basic \
+            --dry-run true \
+            --output artifacts/report.json
+      - name: Fixture contract
+        run: |
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const report = JSON.parse(readFileSync("artifacts/report.json", "utf8"));
+            if (report.dryRun !== true || report.findings.length !== 1) process.exit(1);
+            if (report.plans[0]?.action === "open-pr") process.exit(1);
+          '
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fixture-report
+          path: artifacts/report.json
+          if-no-files-found: error
+          retention-days: 7

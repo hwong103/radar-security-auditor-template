@@ -1,0 +1,21 @@
+{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "CVEs with Critical severity | Zero Wire | Cloudflare Radar",
+  "feed_url": "https://radar.cloudflare.com/zero-wire/cves/feed?format=json&severity=critical",
+  "items": [
+    {
+      "id": "https://radar.cloudflare.com/zero-wire/cves/CVE-2026-100001",
+      "url": "https://radar.cloudflare.com/zero-wire/cves/CVE-2026-100001",
+      "title": "CVE-2026-100001: Test package",
+      "summary": "A short summary.",
+      "content_text": "A short summary.\n\nCVSS 3.1 score: 9.8 (Critical)",
+      "date_published": "2026-11-20T00:00:00.000Z",
+      "_cve": {
+        "id": "CVE-2026-100001",
+        "severity": "CRITICAL",
+        "score": 9.8,
+        "cvss_version": "3.1"
+      }
+    }
+  ]
+}

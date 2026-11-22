@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+config/repos.local.json
+artifacts/
+.codex/setup/

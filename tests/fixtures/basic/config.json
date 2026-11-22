@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "feedUrl": "https://radar.cloudflare.com/zero-wire/cves/feed",
+  "trustedIssueAuthor": "radar-remediator[bot]",
+  "severities": ["critical", "high"],
+  "inventory": "configured",
+  "repositoryDefaults": {
+    "publishIssues": false,
+    "openDraftPrs": false,
+    "allowDependencyChanges": false,
+    "allowedEcosystems": ["npm", "pip"]
+  },
+  "installations": [{ "owner": "example-org" }],
+  "repositories": [
+    {
+      "owner": "example-org",
+      "name": "sample-repo",
+      "publishIssues": true,
+      "enabled": true,
+      "openDraftPrs": false,
+      "allowDependencyChanges": false,
+      "allowedEcosystems": ["npm", "pip"]
+    },
+    {
+      "owner": "example-org",
+      "name": "disabled-sample",
+      "publishIssues": false,
+      "enabled": false,
+      "openDraftPrs": true,
+      "allowDependencyChanges": true,
+      "allowedEcosystems": ["npm"]
+    }
+  ]
+}

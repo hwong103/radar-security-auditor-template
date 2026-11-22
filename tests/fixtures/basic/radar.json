@@ -1,0 +1,12 @@
+[
+  {
+    "id": "CVE-2026-100001",
+    "url": "https://radar.cloudflare.com/zero-wire/cves/CVE-2026-100001",
+    "title": "CVE-2026-100001: test package path traversal",
+    "summary": "A test package dereferences a user-controlled path.",
+    "publishedAt": "2026-11-20T00:00:00.000Z",
+    "severity": "critical",
+    "score": 9.8,
+    "cvssVersion": "3.1"
+  }
+]

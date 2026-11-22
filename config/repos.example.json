@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "feedUrl": "https://radar.cloudflare.com/zero-wire/cves/feed",
+  "trustedIssueAuthor": null,
+  "severities": ["critical", "high"],
+  "inventory": "app-installations",
+  "repositoryDefaults": {
+    "publishIssues": false,
+    "openDraftPrs": false,
+    "allowDependencyChanges": false,
+    "allowedEcosystems": ["npm", "pip", "go", "rust", "composer"]
+  },
+  "installations": [{ "owner": "your-github-owner" }],
+  "repositories": []
+}

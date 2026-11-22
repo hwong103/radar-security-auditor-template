@@ -1,0 +1,118 @@
+name: Radar security audit
+
+on:
+  schedule:
+    - cron: "17 3,11,19 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build and review the report without changing target repositories
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: radar-audit
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+
+  plan:
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: radar-audit
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Reconcile open Dependabot alerts
+        env:
+          RADAR_GITHUB_APP_ID: ${{ secrets.RADAR_GITHUB_APP_ID }}
+          RADAR_GITHUB_PRIVATE_KEY: ${{ secrets.RADAR_GITHUB_PRIVATE_KEY }}
+          RADAR_SCAN_MANIFESTS: "true"
+        run: |
+          node dist/cli.js scan \
+            --config config/repos.json \
+            --dry-run ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == false && 'false' || 'true' }} \
+            --output artifacts/report.json \
+            --manifest-output artifacts/manifests.json
+      - name: Build read-only remediation campaigns
+        run: |
+          node dist/cli.js campaign-preview \
+            --config config/repos.json \
+            --report artifacts/report.json \
+            --max-findings 50 \
+            --output artifacts/campaigns.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: radar-plan
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 14
+
+  advise:
+    needs: plan
+    if: >-
+      success() &&
+      github.event_name == 'workflow_dispatch' &&
+      inputs.dry_run == true &&
+      vars.RADAR_COMMANDCODE_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: radar-audit-model
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: radar-plan
+          path: artifacts
+      - name: Add advisory-only model summaries
+        env:
+          RADAR_COMMANDCODE_API_KEY: ${{ secrets.RADAR_COMMANDCODE_API_KEY }}
+          RADAR_COMMANDCODE_BASE_URL: https://api.commandcode.ai
+          RADAR_COMMANDCODE_ZDR: "true"
+        run: |
+          node dist/cli.js advise-report \
+            --config config/repos.json \
+            --report artifacts/report.json \
+            --output artifacts/advised-report.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: radar-advised
+          path: |
+            artifacts/advised-report.json
+          if-no-files-found: error
+          retention-days: 7
