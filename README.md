@@ -60,6 +60,8 @@ The fixture contains a malicious sentence inside an advisory description. The mo
 
 ## Configure
 
+The template intentionally contains `config/repos.example.json` and no live `config/repos.json`. Create your private repository first, then complete the configuration steps before dispatching the audit. The scheduled scan fails with a setup message until the personalized config is committed.
+
 1. Create a private repository from this template for your audit hub.
 2. Create a read-only GitHub App with metadata, contents, issues, pull requests, and Dependabot alert access. Install it on each owner whose repositories you want to audit.
 3. Copy `config/repos.example.json` to `config/repos.json`, replace `your-github-owner` with an App-installed owner, and commit the personalized config to your private copy. With `inventory: "app-installations"`, every active repository visible to that installation is audited automatically. Newly discovered repositories are report-only until `publishIssues` is enabled for them. Add repository entries only to exclude repositories or override their policy.

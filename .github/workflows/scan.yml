@@ -48,6 +48,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - name: Require a repository configuration
+        run: |
+          test -f config/repos.json || {
+            echo "::error title=Configuration required::Copy config/repos.example.json to config/repos.json, set your App-installed owner or repository overrides, and commit the file."
+            exit 1
+          }
       - name: Reconcile open Dependabot alerts
         env:
           RADAR_GITHUB_APP_ID: ${{ secrets.RADAR_GITHUB_APP_ID }}
