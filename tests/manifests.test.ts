@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   ecosystemFromManifestPath,
+  isValidVersion,
+  isValidVersionRange,
   isVersionInRange,
   matchInstalledPackages,
   parseCargoLock,
@@ -265,6 +267,16 @@ version = "6.1"
   it("uses npm SemVer semantics for caret and prerelease ranges", () => {
     expect(isVersionInRange("0.9.0", "^0.2.3")).toBe(false);
     expect(isVersionInRange("1.2.3-beta.1", ">=1.2.3-beta.1 <1.2.3")).toBe(true);
+  });
+
+  it("validates versions and ranges for the selected ecosystem", () => {
+    expect(isValidVersion("1.2.3", "npm")).toBe(true);
+    expect(isValidVersion("latest", "npm")).toBe(false);
+    expect(isValidVersion("1.0rc1", "pip")).toBe(true);
+    expect(isValidVersionRange(">=1.0.0, <2.0.0", "npm")).toBe(true);
+    expect(isValidVersionRange("affected versions", "npm")).toBe(false);
+    expect(isValidVersionRange(">=1.0rc1, <2", "pip")).toBe(true);
+    expect(isValidVersionRange("affected versions", "pip")).toBe(false);
   });
 
   it("infers npm package names from lockfile paths", () => {

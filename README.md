@@ -89,19 +89,19 @@ The installed GitHub App is the discovery authority. The `installations` list se
 
 ## Model routing
 
-| Tier    | Command Code model             | Use                                                         |
-| ------- | ------------------------------ | ----------------------------------------------------------- |
-| Fast    | `deepseek/deepseek-v4.1-flash` | Validate a routine summary and suggest a small upgrade      |
-| Complex | `z-ai/glm-5.3-flash`           | Explain compatibility or conflicting transitive constraints |
+| Tier    | Command Code model             | Use                                                    |
+| ------- | ------------------------------ | ------------------------------------------------------ |
+| Fast    | `deepseek/deepseek-v4.1-flash` | Summarize findings with complete upgrade evidence      |
+| Complex | `z-ai/glm-5.3-flash`           | Explain findings with ambiguous or incomplete evidence |
 
-The model receives sanitized advisory metadata only. Provider calls use HTTPS, reject redirects, have bounded timeouts and response sizes, and request `x-cmd-zdr: 1` when ZDR is enabled. Fallback templates remain available if entitlement, ZDR, or the API is unavailable.
+The model receives sanitized advisory metadata and the exact installed versions that match the affected manifest and range. It does not receive repository source, issue bodies, workspace paths, or credentials. When the patched version, vulnerable range, installed version, or range validation is missing, advice is forced to `insufficient` and provides evidence-gathering steps without calling the provider. A provider response that reports insufficient evidence is replaced with the deterministic abstention. Provider calls use HTTPS, reject redirects, have bounded timeouts and response sizes, and request `x-cmd-zdr: 1` when ZDR is enabled. Fallback templates remain available if entitlement, ZDR, or the API is unavailable. No model-quality benchmark has established that a larger model produces better advice.
 
 ## Model and publication policy
 
 - The feed's prose is untrusted discovery data.
 - Dependabot is confirmation. A CVE record by itself is never a repository finding.
 - A manifest match is labeled potential exposure until Dependabot confirms it. The scan reports it separately and never publishes it as a confirmed finding.
-- A model may add an escaped summary but cannot alter package, version, issue action, repository list, or workflow.
+- A model may add an escaped advisory note but cannot alter package, version, issue action, repository list, or workflow.
 - The write token is absent from plan, test, and model jobs.
 - Publication is serialized and can require a protected environment.
 - PRs, once implemented, must be Draft PRs with exact-path, base-SHA, and credential-free test-result checks.

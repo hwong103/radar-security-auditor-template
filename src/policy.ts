@@ -27,7 +27,7 @@ export function issueBody(
   return [
     findingMarker(finding.key),
     `## ${escapeMarkdown(finding.summary)}`,
-    modelSummary ? escapeMarkdown(modelSummary) : "",
+    modelSummary ? `### Advisory model note\n\n${escapeMarkdown(modelSummary)}` : "",
     "| Field | Value |",
     "| --- | --- |",
     `| Severity | ${finding.severity} |`,

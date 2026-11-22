@@ -2,7 +2,12 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
-import { CommandCodeClient, enrichReportWithAdvice } from "./commandcode.js";
+import {
+  CommandCodeClient,
+  enrichReportWithAdvice,
+  installedEvidenceForFinding,
+  needsComplexAdvice,
+} from "./commandcode.js";
 import { buildCampaignPreview } from "./campaigns.js";
 import { publishCampaign } from "./campaign-publisher.js";
 import {
@@ -652,8 +657,8 @@ async function inventory(options: Readonly<Record<string, string>>): Promise<voi
 }
 
 async function advice(options: Readonly<Record<string, string>>): Promise<void> {
-  await loadHubConfig(required(options, "config"));
-  const report = (await readJson(required(options, "report"))) as ScanReport;
+  const config = await loadHubConfig(required(options, "config"));
+  const report = validateReport(await readJson(required(options, "report")), config);
   const manifestSamples = (await readJson(required(options, "manifests"))) as Record<
     string,
     readonly InstalledPackage[]
@@ -674,31 +679,35 @@ async function advice(options: Readonly<Record<string, string>>): Promise<void> 
       : {}),
     zeroDataRetention: process.env.RADAR_COMMANDCODE_ZDR !== "false",
   });
-  const manifestEvidence = (manifestSamples[finding.repositoryFullName] ?? []).filter(
-    (pkg) =>
-      pkg.ecosystem === finding.package.ecosystem &&
-      pkg.name.toLowerCase() === finding.package.name.toLowerCase(),
+  const manifestEvidence = installedEvidenceForFinding(
+    finding,
+    manifestSamples[finding.repositoryFullName] ?? [],
   );
   const evidenceFinding =
     manifestEvidence.length > 0
       ? {
           ...finding,
-          summary: `${finding.summary} Observed installed version: ${manifestEvidence
-            .map((pkg) => pkg.version)
-            .join(", ")}.`,
+          summary: `${finding.summary} Observed installed version: ${manifestEvidence.join(", ")}.`,
         }
       : finding;
   const adviceResult = await model.advise(
     evidenceFinding,
-    booleanOption(options["complex"], false),
+    booleanOption(options["complex"], needsComplexAdvice(finding)),
+    {
+      installedVersions: manifestEvidence,
+    },
   );
   const issue = issueForFinding(evidenceFinding, adviceResult);
   await writeJson(required(options, "output"), { advice: adviceResult, issue });
 }
 
 async function adviseReport(options: Readonly<Record<string, string>>): Promise<void> {
-  await loadHubConfig(required(options, "config"));
-  const report = (await readJson(required(options, "report"))) as ScanReport;
+  const config = await loadHubConfig(required(options, "config"));
+  const report = validateReport(await readJson(required(options, "report")), config);
+  const manifestSamples = (await readJson(required(options, "manifests"))) as Record<
+    string,
+    readonly InstalledPackage[]
+  >;
   const apiKey = requiredEnvironment("RADAR_COMMANDCODE_API_KEY");
   const client = new CommandCodeClient({
     transport: new HttpTransportImpl(),
@@ -708,7 +717,18 @@ async function adviseReport(options: Readonly<Record<string, string>>): Promise<
       : {}),
     zeroDataRetention: process.env.RADAR_COMMANDCODE_ZDR !== "false",
   });
-  const advised = await enrichReportWithAdvice(client, report);
+  const advised = await enrichReportWithAdvice(
+    {
+      advise: async (finding, complex) => {
+        const installedVersions = installedEvidenceForFinding(
+          finding,
+          manifestSamples[finding.repositoryFullName] ?? [],
+        );
+        return client.advise(finding, complex, { installedVersions });
+      },
+    },
+    report,
+  );
   await writeJson(required(options, "output"), advised);
 }
 

@@ -32,9 +32,9 @@
 
 ## ADR 0005: Advisory-only models
 
-**Decision:** Route routine work to `deepseek/deepseek-v4.1-flash` and complex remediation explanations to `z-ai/glm-5.3-flash`. Use deterministic templates on failure.
+**Decision:** Route complete evidence to `deepseek/deepseek-v4.1-flash` and ambiguous or incomplete evidence to `z-ai/glm-5.3-flash`. Use deterministic templates on failure.
 
-**Reason:** Model output adds value in explaining compatibility and package-manager effects. Facts, candidate payloads, and mutation authority remain deterministic.
+**Reason:** Model output adds value in explaining evidence and identifying what still needs verification. A larger model does not compensate for missing installed versions, advisory ranges, resolver results, or parent constraints. Exposure facts, package updates, and publication authority remain deterministic. Advice must abstain when required evidence is absent.
 
 ## ADR 0006: No PR builder in the initial release
 

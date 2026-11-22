@@ -114,6 +114,26 @@ export function isVersionInRange(
   return semver.valid(version) !== null && semver.satisfies(version, normalizedRange);
 }
 
+export function isValidVersion(version: string, ecosystem: "npm" | "pip"): boolean {
+  return ecosystem === "pip"
+    ? pep440.valid(version) !== null
+    : semver.valid(version) !== null;
+}
+
+export function isValidVersionRange(range: string, ecosystem: "npm" | "pip"): boolean {
+  if (ecosystem === "pip") {
+    const specifiers = range
+      .split(",")
+      .map((specifier) => specifier.trim())
+      .filter(Boolean);
+    return (
+      specifiers.length > 0 &&
+      specifiers.every((specifier) => Boolean(pep440.validRange(specifier)))
+    );
+  }
+  return semver.validRange(normalizeRange(range)) !== null;
+}
+
 function isPep440VersionInRange(version: string, range: string): boolean {
   if (pep440.valid(version) === null) return false;
   const specifiers = range

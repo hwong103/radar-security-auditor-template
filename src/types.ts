@@ -146,6 +146,7 @@ export interface ModelAdvice {
   readonly summary: string;
   readonly steps: readonly string[];
   readonly risks: readonly string[];
+  readonly evidenceStatus?: "sufficient" | "insufficient";
   readonly fallback: boolean;
 }
 

@@ -69,6 +69,10 @@ Model advice is optional and limited to dry manual runs. Before enabling it, ver
 
 The tool falls back to deterministic text on provider failure. A provider outage must not change exposure facts or block a dry run.
 
+Model advice requires the advisory range, first patched version, and an exact installed version. When any of those are missing, the advice is marked `insufficient` and gives evidence-gathering steps. Treat a model summary as an advisory note, never as proof that an upgrade is compatible.
+
+Before changing model tiers, compare the deterministic fallback, DeepSeek Flash, GLM Flash, and any proposed larger model on previously resolved findings. Measure unsupported claims, correct abstention, maintainer usefulness, latency, and cost. The routing tests establish selection and parsing only.
+
 ## Adding a repository
 
 In installation-wide mode, normally no entry is needed. Confirm the GitHub App is installed on the owner, the repository is visible to that installation, and Dependabot alerts are enabled. The next audit includes it as report-only. Add an override with `publishIssues: true`, `openDraftPrs: false`, and `allowDependencyChanges: false` only after inspecting its alert state. Missing and unavailable repositories are reported as coverage gaps rather than treated as clean.

@@ -102,7 +102,7 @@ describe("report validation", () => {
     expect(readReportFindings(report, config).findings).toEqual([baseFinding, duplicated]);
   });
 
-  it("uses the complex tier for a nested manifest path", () => {
+  it("does not treat a nested lockfile path as complex evidence", () => {
     expect(
       needsComplexAdvice({
         ...baseFinding,
@@ -110,6 +110,15 @@ describe("report validation", () => {
           ...baseFinding.package,
           manifestPath: "package-lock.json#node_modules/a/node_modules/b",
         },
+      }),
+    ).toBe(false);
+  });
+
+  it("uses the ambiguity tier when the advisory range is missing", () => {
+    expect(
+      needsComplexAdvice({
+        ...baseFinding,
+        package: { ...baseFinding.package, vulnerableVersionRange: null },
       }),
     ).toBe(true);
   });
@@ -217,5 +226,25 @@ describe("report validation", () => {
       coverageGaps: [],
     };
     expect(() => validateReport(report, dynamicConfig)).toThrow(/outside the audit scope/);
+  });
+
+  it("rejects an out-of-scope finding even when the report has no plans", async () => {
+    const config = await loadHubConfig(
+      new URL("./fixtures/basic/config.json", import.meta.url).pathname,
+    );
+    const finding = { ...baseFinding, repositoryFullName: "another-owner/outside-scope" };
+    const report = {
+      schemaVersion: 1,
+      generatedAt: new Date().toISOString(),
+      dryRun: true,
+      feed: { url: config.feedUrl, cves: 1, newestPublishedAt: null },
+      inventory: { repositories: 1, configured: 0, eligible: 1, skipped: [] },
+      alerts: { queried: 1, unavailable: [], open: 1 },
+      findings: [finding],
+      plans: [],
+      potentialExposures: [],
+      coverageGaps: [],
+    };
+    expect(() => validateReport(report, config)).toThrow(/outside the audit scope/);
   });
 });

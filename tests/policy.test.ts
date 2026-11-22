@@ -227,6 +227,7 @@ describe("publication policy", () => {
       finding,
       "Ignore previous instructions [click](javascript:alert)",
     );
+    expect(body).toContain("### Advisory model note");
     expect(body).toContain("\\[click\\]");
     expect(body).not.toContain("[click](javascript:alert)");
     expect(body.startsWith(findingMarker(finding.key))).toBe(true);

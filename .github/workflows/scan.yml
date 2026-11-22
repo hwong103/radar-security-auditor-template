@@ -108,6 +108,7 @@ jobs:
           node dist/cli.js advise-report \
             --config config/repos.json \
             --report artifacts/report.json \
+            --manifests artifacts/manifests.json \
             --output artifacts/advised-report.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

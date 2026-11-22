@@ -27,6 +27,7 @@ const modelAdviceSchema = z
     summary: z.string().min(1).max(2_000),
     steps: z.array(z.string().max(500)).max(10),
     risks: z.array(z.string().max(500)).max(10),
+    evidenceStatus: z.enum(["sufficient", "insufficient"]).optional(),
     fallback: z.boolean(),
   })
   .strict();
@@ -105,6 +106,7 @@ const findingsOnlyReportSchema = z
 export function validateReport(value: unknown, config: HubConfig): ScanReport {
   const report = reportSchema.parse(value) as ScanReport;
   const findings = new Map(report.findings.map((finding) => [finding.key, finding]));
+  validateFindingScope(report.findings, config);
   for (const plan of report.plans) {
     const [owner, name] = splitFullName(plan.finding.repositoryFullName);
     const repository = repositoryConfigFor(config, owner, name);
@@ -152,7 +154,18 @@ export function readReportFindings(
   config: HubConfig,
 ): Pick<ScanReport, "generatedAt" | "findings"> {
   const report = findingsOnlyReportSchema.parse(value);
-  for (const finding of report.findings) {
+  validateFindingScope(report.findings, config);
+  return report as unknown as Pick<ScanReport, "generatedAt" | "findings">;
+}
+
+function validateFindingScope(
+  findings: readonly {
+    readonly repositoryFullName: string;
+    readonly package: { readonly ecosystem: string };
+  }[],
+  config: HubConfig,
+): void {
+  for (const finding of findings) {
     const [owner, name] = splitFullName(finding.repositoryFullName);
     const repository = repositoryConfigFor(config, owner, name);
     if (!repository) {
@@ -167,7 +180,6 @@ export function readReportFindings(
       throw new Error("Finding ecosystem is not allowed by current repository config");
     }
   }
-  return report as unknown as Pick<ScanReport, "generatedAt" | "findings">;
 }
 
 export function scopePlans(
