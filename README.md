@@ -11,7 +11,7 @@ This is a public GitHub template. It performs read-only auditing by default and 
 - Reads all open Dependabot alerts on each run, so feed truncation and late advisory mappings do not erase an existing alert.
 - Limits issue publication plans to high and critical **Dependabot-confirmed** findings.
 - Correlates a CVE with GHSA aliases and provides a potential-exposure input for repository lockfiles when Dependabot is unavailable.
-- Reads pinned Python dependencies from `requirements*.txt`, `poetry.lock`, `uv.lock`, and `Pipfile.lock`, and applies PEP 440 version ranges and PEP 503 distribution-name normalization.
+- Reads exact installed versions from npm, Python, Go, and Rust lockfiles, with ecosystem-specific package identity and range validation.
 - Produces a stable finding identity from repository, advisory aliases, package, and manifest.
 - Plans one issue per finding, checks existing marker-matched issues, and reuses matching Dependabot PRs.
 - Refuses to reopen a previously closed issue.
@@ -111,28 +111,27 @@ The model receives sanitized advisory metadata and the exact installed versions 
 
 The scan can miss a real issue even when the Radar CVE is present. It reports coverage gaps rather than treating absence of alerts as proof of safety. Cases include disabled Dependabot or dependency graph, unsupported package systems, Docker and OS packages, vendored code, and a new advisory that GitHub has not yet mapped. See [operations.md](docs/operations.md) for the response.
 
-## Python support
+## Ecosystem evidence
 
-Python campaigns currently use deterministic inventory and dependency-range evidence, then require manual review before remediation. The scanner records only packages with an exact installed version. It does not treat ranges, VCS URLs, editable installs, `requirements.in`, or unbuilt `pyproject.toml` declarations as installed evidence.
+The audit is ecosystem-agnostic at the GitHub and Cloudflare layers. Repository-level evidence depends on the manifest adapter available for each ecosystem.
 
-Supported lock and requirements formats:
+| Ecosystem | Installed-version evidence                                    | Remediation policy                                               |
+| --------- | ------------------------------------------------------------- | ---------------------------------------------------------------- |
+| npm       | `package-lock.json`, `npm-shrinkwrap.json`                    | Eligible for the tested remediation pilot when evidence is valid |
+| Python    | `requirements*.txt`, `poetry.lock`, `uv.lock`, `Pipfile.lock` | Review required                                                  |
+| Go        | `go.sum`                                                      | Review required                                                  |
+| Rust      | `Cargo.lock`                                                  | Review required                                                  |
+| Composer  | Dependabot alert evidence; lockfile adapter not implemented   | Review required                                                  |
 
-| Manifest            | Evidence read                                              |
-| ------------------- | ---------------------------------------------------------- |
-| `requirements*.txt` | Direct `==` pins, including extras and environment markers |
-| `poetry.lock`       | Each locked package name and version                       |
-| `uv.lock`           | Each locked package name and version                       |
-| `Pipfile.lock`      | Default and development locked versions                    |
+The scanner records only exact installed versions. It does not treat ranges, VCS URLs, editable installs, `requirements.in`, or unbuilt `pyproject.toml` declarations as installed evidence.
 
-PEP 440 handles epochs, prereleases, post releases, local versions, and Python constraint syntax. Python package names are normalized according to PEP 503 so `Zope.Interface`, `zope_interface`, and `zope-interface` identify the same dependency.
-
-Python campaigns remain review-only. They do not run a package manager, rewrite a lockfile, create a PR, or claim that a version bump is compatible. An agent can use the issue evidence to make and test a repository-specific fix.
+Python package names are normalized according to PEP 503, and vulnerable ranges use PEP 440 semantics so package-name spelling variants identify the same dependency. Other ecosystems retain their native package identity and version rules. An ecosystem-specific updater and credential-free validation path are required before automatic remediation is enabled.
 
 ## Roadmap
 
 1. npm remediation: identify the exact direct dependency or lockfile entry, run the real package manager, verify tarball integrity and the dependency graph, create a Draft PR, and run the target repository's required tests in a credential-free job.
 2. GHSA/OSV range matching for repository-wide manifest inventory when Dependabot is disabled.
-3. Python remediation: add a tested, repository-specific `pip`, Poetry, uv, or Pipfile updater and a credential-free validation path before enabling Python PR creation.
+3. Non-npm remediation: add tested, repository-specific updater and credential-free validation paths before enabling PR creation for another ecosystem.
 4. A Worker/Queue coordinator only after Actions polling is insufficient for events or installation scale.
 
 ## Source grounding
